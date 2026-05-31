@@ -1,0 +1,9 @@
+.DS_Store
+.idea/
+*.pyc
+__pycache__/
+*.pth
+*.pth.tar
+*.csv
+output/
+logs/
