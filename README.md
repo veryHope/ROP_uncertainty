@@ -17,7 +17,8 @@ This project provides fine-tuning commands for ConvMAE model with multiple uncer
 1. **Pretrain** - Self-supervised pre-training using Masked Autoencoder
 2. **Normal Mode** - Standard CrossEntropyLoss training + inference
 3. **MC Dropout Mode** - Uncertainty estimation via Monte Carlo Dropout + inference
-4. **EDL Mode** - Uncertainty estimation via Evidential Deep Learning + inference
+4. **Deep Ensemble Mode** - Uncertainty estimation via checkpoint-based ensemble + inference
+5. **EDL Mode** - Uncertainty estimation via Evidential Deep Learning + inference
 
 ---
 
@@ -140,64 +141,34 @@ CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=1 python -m torch.distributed.launch --np
 
 ---
 
-## Common Parameters
+## 5. Deep Ensemble Mode
 
-| Parameter | Description | Recommended |
-|-----------|-------------|-------------|
-| `--data_path` | Dataset path | - |
-| `--nb_classes` | Number of classes | 2 |
-| `--batch_size` | Batch size per GPU | 32 |
-| `--epochs` | Training epochs | 50 |
-| `--blr` | Base learning rate | 1e-4 |
-| `--lr` | Learning rate (overrides blr) | - |
-| `--weight_decay` | Weight decay | 1e-4 |
-| `--clip_grad` | Gradient clipping | 0.5 |
-| `--warmup_epochs` | Warmup epochs | 2 |
-| `--seed` | Random seed | 42 |
-| `--layer_decay` | Layer-wise lr decay | 1.0 (EDL), 0.75 (others) |
-| `--drop_path` | Drop path rate | 0.1 |
+Uncertainty estimation via checkpoint-based Deep Ensemble. Selects top-M checkpoints with highest validation AUC scores from training trajectory.
 
-### Data Augmentation
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `--aa` | AutoAugment policy | `rand-m9-mstd0.5-inc1` |
-| `--color_jitter` | Color jitter | None |
-| `--reprob` | Random erasing prob | 0.25 |
-
-**For small datasets, disable augmentation:**
+### Training
 ```bash
---aa '' --color_jitter 0.0 --reprob 0.0
+CUDA_VISIBLE_DEVICES=0,1 OMP_NUM_THREADS=4 python -m torch.distributed.launch --nproc_per_node=2 main_finetune.py \
+--batch_size 32 \
+--model convvit_base_patch16 \
+--finetune /path/to/pretrained/model.pth \
+--epochs 50 --blr 1e-4 --reprob 0.0 --aa '' \
+--nb_classes 2 --seed 42 --warmup_epochs 2 --clip_grad 0.5 \
+--data_path /path/to/your/dataset/ \
+--output_dir ./output_dir/Deep_Ensemble/ \
+--log_dir ./output_dir/Deep_Ensemble/
 ```
 
-### Uncertainty Parameters
-
-| Parameter | Description | Mode |
-|-----------|-------------|------|
-| `--use_edl` | Enable EDL | EDL |
-| `--mc_dropout` | Dropout probability | MC Dropout |
-| `--mc_dropout_samples` | Forward passes for inference | MC Dropout |
-
----
-
-## Mode Comparison
-
-| Mode | Uncertainty Method | Inference Cost | Output |
-|------|-------------------|----------------|--------|
-| **Normal** | None | Low | `path, lb, prob` |
-| **MC Dropout** | Variance from multiple passes | High | `path, lb, prob, var` |
-| **EDL** | Dirichlet distribution | Low | `path, lb, prob, uncertainty` |
-
-### EDL Uncertainty Calculation
-
-```
-evidence = softplus(output)
-alpha = evidence + 1
-S = sum(alpha)
-uncertainty = num_classes / S
+### Inference
+```bash
+CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=1 python -m torch.distributed.launch --nproc_per_node=1 main_finetune.py \
+--eval --batch_size 128 --nb_classes 2 --seed 42 --deep_ensemble --ensemble_models 5 \
+--model convvit_base_patch16 \
+--resume /path/to/model/checkpoint.pth \
+--data_path /path/to/test/dataset/ \
+--eval_save_path ./output_dir/Deep_Ensemble_results.csv
 ```
 
-Larger `uncertainty` = more uncertain.
+**Note**: Deep Ensemble uses multiple checkpoints from training. Select checkpoints with highest validation AUC and place them in the checkpoint directory before inference.
 
 ---
 
@@ -221,30 +192,20 @@ Larger `uncertainty` = more uncertain.
 
 ## Output Format
 
-### Normal/MC Dropout
+### Normal
 | Column | Description |
 |--------|-------------|
 | `path` | Image path |
-| `lb` | Ground truth label |
-| `prob` | Probability for positive class |
+| `labels` | Ground truth label |
+| `prob1` | Probability for positive class |
 
-### EDL
+### MC Dropout / EDL
 | Column | Description |
 |--------|-------------|
 | `path` | Image path |
-| `lb` | Ground truth label |
-| `prob` | Probability for positive class |
+| `labels` | Ground truth label |
+| `prob1` | Probability for positive class |
 | `uncertainty` | Uncertainty score (higher = more uncertain) |
-
----
-
-## Notes
-
-1. **EDL and MC Dropout are mutually exclusive**
-2. **For medical/small datasets**: disable augmentation with `--aa '' --color_jitter 0.0 --reprob 0.0`
-3. **Pretrained model required**: use `--finetune /path/to/model.pth`
-4. **Multi-GPU**: use `torch.distributed.launch --nproc_per_node=N`
-5. **Inference mode**: add `--eval` with `--resume`
 
 ---
 
@@ -254,12 +215,10 @@ Larger `uncertainty` = more uncertain.
 - Python 3.7+
 - PyTorch 1.9+
 - CUDA 10.2+
-- timm==0.3.2
 - scikit-learn, scipy, tensorboard
 
 ### Installation
 ```bash
 pip install torch torchvision
-pip install timm==0.3.2
 pip install scikit-learn scipy tensorboard
 ```
