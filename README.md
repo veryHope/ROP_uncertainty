@@ -1,4 +1,16 @@
-# ConvMAE Fine-tuning
+# Enhancing ROP Screening Reliability with Deep Learning and Uncertainty Estimation
+
+**Beta-EDL**: An evidential deep learning uncertainty-aware model based on self-supervised ConvMAE, enabling reliable AI-assisted referral decisions.
+
+### Key Features
+- **Self-supervised Pre-training**: ConvMAE pre-trained on 168,713 unlabeled images
+- **Uncertainty Estimation**: EDL-based approach identifies high-uncertainty cases for expert review
+- **Human-AI Collaboration**: Uncertain cases referred to specialists, improving screening reliability
+- **Multiple Modes**: Normal, MC Dropout, and EDL fine-tuning support
+
+---
+
+## Quick Start
 
 This project provides fine-tuning commands for ConvMAE model with multiple uncertainty estimation modes:
 
