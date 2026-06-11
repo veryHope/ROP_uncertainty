@@ -6,7 +6,10 @@
 - **Self-supervised Pre-training**: ConvMAE pre-trained on 168,713 unlabeled images
 - **Uncertainty Estimation**: EDL-based approach identifies high-uncertainty cases for expert review
 - **Human-AI Collaboration**: Uncertain cases referred to specialists, improving screening reliability
-- **Multiple Modes**: Normal, MC Dropout, and EDL fine-tuning support
+- **Multiple Modes**: Normal, MC Dropout, Deep Ensemble, and EDL fine-tuning support
+
+### Pretrained Model
+Pre-trained weights: [convmae_rop.pth](https://github.com/veryHope/ROP_uncertainty/releases/tag/v1.0/convmae_rop.pth) (~400MB)
 
 ---
 
