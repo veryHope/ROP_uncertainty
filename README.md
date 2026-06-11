@@ -40,18 +40,6 @@ CUDA_VISIBLE_DEVICES=0,1 OMP_NUM_THREADS=4 python -m torch.distributed.launch --
 --output_dir ./output_dir/pretrain/
 ```
 
-### Parameters
-
-| Parameter | Description | Recommended |
-|-----------|-------------|-------------|
-| `--model` | Model name | `convmae_convvit_base_patch16` |
-| `--mask_ratio` | Masking ratio | 0.75 |
-| `--norm_pix_loss` | Normalized pixel loss | Recommended |
-| `--blr` | Base learning rate | 1e-3 |
-| `--epochs` | Training epochs | 800 |
-| `--warmup_epochs` | Warmup epochs | 20 |
-| `--weight_decay` | Weight decay | 0.05 |
-
 ---
 
 ## 2. Normal Mode
